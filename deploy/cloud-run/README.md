@@ -85,13 +85,20 @@ Variables usadas en el despliegue:
 
 ## 5. Construir imagenes
 
-Para publicar las cuatro imagenes con Cloud Build:
+Para publicar las cuatro imagenes con Cloud Build desde la raiz del repositorio:
 
 ```powershell
 gcloud builds submit . `
   --config .\deploy\cloud-run\cloudbuild.yaml `
   --substitutions _REGION=us-central1,_REPOSITORY=papeleria,_TAG=latest
 ```
+
+Ese `cloudbuild.yaml` construye cada imagen usando rutas explicitas:
+
+- `auth-service/Dockerfile` con contexto `auth-service`
+- `inventory-service/Dockerfile` con contexto `inventory-service`
+- `sales-service/Dockerfile` con contexto `sales-service`
+- `frontend/Dockerfile` con contexto `frontend`
 
 O usando el script:
 
