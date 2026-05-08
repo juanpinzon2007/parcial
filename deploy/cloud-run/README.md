@@ -93,11 +93,16 @@ gcloud builds submit . `
   --substitutions _REGION=us-central1,_REPOSITORY=papeleria,_TAG=latest
 ```
 
-Ese `cloudbuild.yaml` construye cada imagen usando rutas explicitas:
+Ese `cloudbuild.yaml` hace dos cosas para backend:
 
-- `auth-service/Dockerfile` con contexto `auth-service`
-- `inventory-service/Dockerfile` con contexto `inventory-service`
-- `sales-service/Dockerfile` con contexto `sales-service`
+- compila cada microservicio Java con Maven (`clean package -DskipTests`)
+- construye una imagen runtime usando `Dockerfile.runtime`
+
+Rutas usadas:
+
+- `auth-service/pom.xml` y `auth-service/Dockerfile.runtime`
+- `inventory-service/pom.xml` y `inventory-service/Dockerfile.runtime`
+- `sales-service/pom.xml` y `sales-service/Dockerfile.runtime`
 - `frontend/Dockerfile` con contexto `frontend`
 
 O usando el script:

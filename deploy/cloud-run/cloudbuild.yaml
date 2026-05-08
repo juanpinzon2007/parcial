@@ -7,32 +7,59 @@ substitutions:
   _TAG: latest
 
 steps:
+  - name: maven:3.9.9-eclipse-temurin-17
+    entrypoint: mvn
+    args:
+      - -f
+      - auth-service/pom.xml
+      - clean
+      - package
+      - -DskipTests
+
   - name: gcr.io/cloud-builders/docker
     args:
       - build
       - -f
-      - auth-service/Dockerfile
+      - auth-service/Dockerfile.runtime
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/auth-service:${_TAG}
-      - auth-service
+      - .
+
+  - name: maven:3.9.9-eclipse-temurin-17
+    entrypoint: mvn
+    args:
+      - -f
+      - inventory-service/pom.xml
+      - clean
+      - package
+      - -DskipTests
 
   - name: gcr.io/cloud-builders/docker
     args:
       - build
       - -f
-      - inventory-service/Dockerfile
+      - inventory-service/Dockerfile.runtime
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/inventory-service:${_TAG}
-      - inventory-service
+      - .
+
+  - name: maven:3.9.9-eclipse-temurin-17
+    entrypoint: mvn
+    args:
+      - -f
+      - sales-service/pom.xml
+      - clean
+      - package
+      - -DskipTests
 
   - name: gcr.io/cloud-builders/docker
     args:
       - build
       - -f
-      - sales-service/Dockerfile
+      - sales-service/Dockerfile.runtime
       - -t
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/sales-service:${_TAG}
-      - sales-service
+      - .
 
   - name: gcr.io/cloud-builders/docker
     args:
