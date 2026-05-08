@@ -1,0 +1,106 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: papeleria-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init/01-create-databases.sql:/docker-entrypoint-initdb.d/01-create-databases.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  postgres:
+    image: postgres:16
+    container_name: papeleria-postgres
+    environment:
+      POSTGRES_DB: inventory_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventory_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: papeleria-auth
+    environment:
+      PORT: 8081
+      DB_URL: jdbc:mysql://mysql:3306/auth_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      APP_JWT_SECRET: 01234567890123456789012345678901papeleria
+      CORS_ALLOWED_ORIGIN: http://localhost:4200
+      ADMIN_EMAIL: admin@papeleria.com
+      ADMIN_PASSWORD: Admin123*
+      ADMIN_FULL_NAME: Administrador General
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+
+  inventory-service:
+    build:
+      context: ./inventory-service
+    container_name: papeleria-inventory
+    environment:
+      PORT: 8082
+      DB_URL: jdbc:postgresql://postgres:5432/inventory_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      APP_JWT_SECRET: 01234567890123456789012345678901papeleria
+      CORS_ALLOWED_ORIGIN: http://localhost:4200
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+
+  sales-service:
+    build:
+      context: ./sales-service
+    container_name: papeleria-sales
+    environment:
+      PORT: 8083
+      DB_URL: jdbc:mysql://mysql:3306/sales_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: root
+      DB_PASSWORD: root
+      APP_JWT_SECRET: 01234567890123456789012345678901papeleria
+      CORS_ALLOWED_ORIGIN: http://localhost:4200
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: papeleria-frontend
+    environment:
+      AUTH_API_URL: http://localhost:8081/api
+      INVENTORY_API_URL: http://localhost:8082/api
+      SALES_API_URL: http://localhost:8083/api
+    depends_on:
+      - auth-service
+      - inventory-service
+      - sales-service
+    ports:
+      - "4200:80"
+
+volumes:
+  mysql_data:
+  postgres_data:

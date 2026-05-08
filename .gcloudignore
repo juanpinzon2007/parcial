@@ -1,0 +1,9 @@
+.git
+.gitignore
+.idea
+.mvn
+**/target
+frontend/.angular
+frontend/dist
+frontend/node_modules
+docker/mysql/data

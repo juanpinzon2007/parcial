@@ -1,0 +1,36 @@
+<section class="auth-shell">
+  <div class="auth-card">
+    <h1>Registro</h1>
+    <p>Los usuarios registrados se crean con rol USER.</p>
+
+    @if (errorMessage) {
+      <div class="error-box">{{ errorMessage }}</div>
+    }
+
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="field">
+        <label for="fullName">Nombre completo</label>
+        <input id="fullName" type="text" formControlName="fullName" placeholder="Juan Perez">
+        <small>{{ form.controls.fullName.touched && form.controls.fullName.invalid ? 'El nombre es obligatorio' : '' }}</small>
+      </div>
+
+      <div class="field">
+        <label for="email">Correo</label>
+        <input id="email" type="email" formControlName="email" placeholder="usuario@correo.com">
+        <small>{{ form.controls.email.touched && form.controls.email.invalid ? 'Ingrese un correo valido' : '' }}</small>
+      </div>
+
+      <div class="field">
+        <label for="password">Contrasena</label>
+        <input id="password" type="password" formControlName="password" placeholder="Minimo 6 caracteres">
+        <small>{{ form.controls.password.touched && form.controls.password.invalid ? 'Minimo 6 caracteres' : '' }}</small>
+      </div>
+
+      <button class="primary-button" type="submit" [disabled]="loading">
+        {{ loading ? 'Registrando...' : 'Registrar' }}
+      </button>
+    </form>
+
+    <a class="secondary-link" routerLink="/login">Volver al login</a>
+  </div>
+</section>

@@ -1,0 +1,290 @@
+<div class="dashboard-shell">
+  <header class="topbar">
+    <div>
+      <h1>Papeleria Central</h1>
+      <p>Inventario y pedidos con Angular + microservicios</p>
+    </div>
+
+    <div class="user-box">
+      <div>
+        <strong>{{ currentUser?.fullName }}</strong>
+        <span>{{ currentUser?.role }}</span>
+      </div>
+      <button class="ghost-button" type="button" (click)="logout()">Salir</button>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="message error">{{ errorMessage }}</div>
+  }
+
+  @if (feedbackMessage) {
+    <div class="message success">{{ feedbackMessage }}</div>
+  }
+
+  @if (loading) {
+    <div class="loading-box">Cargando informacion...</div>
+  } @else {
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span>Productos</span>
+        <strong>{{ summary?.totalProducts ?? 0 }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Unidades en stock</span>
+        <strong>{{ summary?.totalUnitsInStock ?? 0 }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Stock bajo</span>
+        <strong>{{ summary?.lowStockProducts ?? 0 }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Pedidos pendientes</span>
+        <strong>{{ pendingOrders }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Total pedidos</span>
+        <strong>{{ orders.length }}</strong>
+      </article>
+      <article class="summary-card">
+        <span>Valor acumulado</span>
+        <strong>{{ totalSalesAmount | currency:'COP':'symbol':'1.0-0' }}</strong>
+      </article>
+    </section>
+
+    <section class="panel-switch">
+      <button
+        type="button"
+        class="switch-button"
+        [class.active]="activePanel === 'products'"
+        (click)="changePanel('products')"
+      >
+        Productos
+      </button>
+      <button
+        type="button"
+        class="switch-button"
+        [class.active]="activePanel === 'orders'"
+        (click)="changePanel('orders')"
+      >
+        Pedidos
+      </button>
+    </section>
+
+    @if (activePanel === 'products') {
+      <section class="workspace">
+        @if (isAdmin) {
+          <article class="editor-card">
+            <div class="card-header">
+              <h2>{{ editingProductId === null ? 'Nuevo producto' : 'Editar producto' }}</h2>
+              @if (editingProductId !== null) {
+                <button class="ghost-button" type="button" (click)="cancelProductEdit()">Cancelar</button>
+              }
+            </div>
+
+            <form class="editor-form" [formGroup]="productForm" (ngSubmit)="submitProduct()">
+              <div class="form-grid">
+                <label>
+                  <span>Nombre</span>
+                  <input type="text" formControlName="name">
+                </label>
+                <label>
+                  <span>Marca</span>
+                  <input type="text" formControlName="brand">
+                </label>
+                <label>
+                  <span>Categoria</span>
+                  <input type="text" formControlName="category">
+                </label>
+                <label>
+                  <span>Precio</span>
+                  <input type="number" formControlName="price" step="0.01">
+                </label>
+                <label>
+                  <span>Stock</span>
+                  <input type="number" formControlName="stock">
+                </label>
+                <label>
+                  <span>Activo</span>
+                  <select formControlName="active">
+                    <option [ngValue]="true">Si</option>
+                    <option [ngValue]="false">No</option>
+                  </select>
+                </label>
+              </div>
+
+              <label>
+                <span>Descripcion</span>
+                <textarea rows="4" formControlName="description"></textarea>
+              </label>
+
+              <button class="primary-button" type="submit" [disabled]="savingProduct">
+                {{ savingProduct ? 'Guardando...' : (editingProductId === null ? 'Crear producto' : 'Actualizar producto') }}
+              </button>
+            </form>
+          </article>
+        }
+
+        <article class="table-card wide">
+          <div class="card-header">
+            <h2>Inventario disponible</h2>
+            <span>{{ products.length }} registros</span>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Categoria</th>
+                  <th>Precio</th>
+                  <th>Stock</th>
+                  <th>Estado</th>
+                  @if (isAdmin) {
+                    <th>Acciones</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (product of products; track product.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ product.name }}</strong>
+                      <div class="muted">{{ product.brand }}</div>
+                    </td>
+                    <td>{{ product.category }}</td>
+                    <td>{{ product.price | currency:'COP':'symbol':'1.0-0' }}</td>
+                    <td>{{ product.stock }}</td>
+                    <td>{{ product.active ? 'Activo' : 'Inactivo' }}</td>
+                    @if (isAdmin) {
+                      <td class="actions">
+                        <button class="ghost-button" type="button" (click)="editProduct(product)">Editar</button>
+                        <button class="danger-button" type="button" (click)="removeProduct(product.id)">Eliminar</button>
+                      </td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td [attr.colspan]="isAdmin ? 6 : 5">No hay productos cargados</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    }
+
+    @if (activePanel === 'orders') {
+      <section class="workspace">
+        <article class="editor-card">
+          <div class="card-header">
+            <h2>{{ editingOrderId === null ? 'Nuevo pedido' : 'Editar pedido' }}</h2>
+            @if (editingOrderId !== null) {
+              <button class="ghost-button" type="button" (click)="cancelOrderEdit()">Cancelar</button>
+            }
+          </div>
+
+          <form class="editor-form" [formGroup]="orderForm" (ngSubmit)="submitOrder()">
+            <div class="form-grid compact">
+              <label>
+                <span>Estado</span>
+                <select formControlName="status" [disabled]="!isAdmin">
+                  @for (status of statusOptions; track status) {
+                    <option [value]="status">{{ status }}</option>
+                  }
+                </select>
+              </label>
+            </div>
+
+            <label>
+              <span>Notas</span>
+              <textarea rows="3" formControlName="notes"></textarea>
+            </label>
+
+            <div class="item-list" formArrayName="items">
+              @for (item of orderItems.controls; track $index) {
+                <div class="item-row" [formGroupName]="$index">
+                  <label>
+                    <span>Producto</span>
+                    <select formControlName="productName" (change)="fillPriceFromProduct($index)">
+                      <option value="">Seleccione</option>
+                      @for (product of products; track product.id) {
+                        <option [value]="product.name">{{ product.name }}</option>
+                      }
+                    </select>
+                  </label>
+
+                  <label>
+                    <span>Cantidad</span>
+                    <input type="number" formControlName="quantity">
+                  </label>
+
+                  <label>
+                    <span>Precio unitario</span>
+                    <input type="number" formControlName="unitPrice" step="0.01">
+                  </label>
+
+                  <button class="ghost-button align-end" type="button" (click)="removeOrderItem($index)">
+                    Quitar
+                  </button>
+                </div>
+              }
+            </div>
+
+            <div class="inline-actions">
+              <button class="ghost-button" type="button" (click)="addOrderItem()">Agregar item</button>
+              <button class="primary-button" type="submit" [disabled]="savingOrder">
+                {{ savingOrder ? 'Guardando...' : (editingOrderId === null ? 'Crear pedido' : 'Actualizar pedido') }}
+              </button>
+            </div>
+          </form>
+        </article>
+
+        <article class="table-card wide">
+          <div class="card-header">
+            <h2>{{ isAdmin ? 'Todos los pedidos' : 'Mis pedidos' }}</h2>
+            <span>{{ orders.length }} registros</span>
+          </div>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Estado</th>
+                  <th>Total</th>
+                  <th>Items</th>
+                  <th>Creado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (order of orders; track order.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ order.customerName }}</strong>
+                      <div class="muted">{{ order.customerEmail }}</div>
+                    </td>
+                    <td>{{ order.status }}</td>
+                    <td>{{ order.total | currency:'COP':'symbol':'1.0-0' }}</td>
+                    <td>{{ order.items.length }}</td>
+                    <td>{{ order.createdAt | date:'short' }}</td>
+                    <td class="actions">
+                      <button class="ghost-button" type="button" (click)="editOrder(order)">Editar</button>
+                      <button class="danger-button" type="button" (click)="removeOrder(order.id)">Eliminar</button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="6">No hay pedidos cargados</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    }
+  }
+</div>
